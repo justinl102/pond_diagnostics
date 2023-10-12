@@ -20,12 +20,12 @@ sns.set_style('whitegrid')
 monitorings = pd.read_csv('monitoring_cleaned.csv')
 
 
-monitorings['FechaMuestreo'] = pd.to_datetime(monitorings['FechaMuestreo'])
+monitorings['FechaMuestreo'] = pd.to_datetime(monitorings['FechaMuestreo']).dt.date
 
 monitorings['feed_percent_biomass'] =   (monitorings['KilosAlimento']/7) / monitorings['live_biomass']
 
-max_date = monitorings['FechaMuestreo'].max().date()
-min_date = monitorings['FechaMuestreo'].min().date()
+max_date = monitorings['FechaMuestreo'].max()
+min_date = monitorings['FechaMuestreo'].min()
 
 harvests = pd.read_csv('bravito_harvests.csv')
 active_cycles = pd.read_csv('active_cycles.csv')
@@ -75,45 +75,47 @@ def print_shape(df):
   return df
 
 
-clean_df = (monitorings.pipe(print_shape)
-             .pipe(clip_extreme_change,-1, 6)
-             .pipe(print_shape)
-             .pipe(clip_extreme_growth,0.3,1.75)
-
-             .pipe(print_shape)
-             .dropna()
-             )
-
 def growth_model(time, Linf, K, position, w0):
     return Linf * np.exp(-np.exp(position - K * time)) + w0
 
 
-def get_benchmark(df, weight_min, weight_max, model):
-  train_df = df[(df['PesoPromedio2'] > weight_min) & (df['PesoPromedio2'] < weight_max)]
-  x_train = df['cycle_days'] 
-  y_train = df['PesoPromedio'] 
 
-  curve_params, covariance = curve_fit(model,
-                                     x_train,
-                                     y_train,
-                                     p0 = [37.728, 0.02348,0.93, 8.008],
-                                     maxfev = 100000
-                                          )
-  return curve_params
+
+
+def exponential_fit_3d(x, a,b,c,d):
+  return a*x**3 + b*x**2 + c*x + d
+
+def exponential_fit_2d(x, b,c,d):
+  return b*x**2 + c*x + d
+
+def exponential_decay(N0, k, t):
+    return N0 * math.exp(-k * t)
 
 
 #dictionaries -------------------------------------------------------------
 param_dict = {
-    'Supervivencia': [0.7, 1.5, 50,100],
-    'biomass_ha': [0.5, 2, 50,10000],
-    'PesoPromedio2':[0.5, 1.5, 2,35],
-    'cumulative_fcr':[0.25, 1.5, 0.1,3],
-    'weekly_fcr':[0.1, 2, 0.1,5],
-    '1week_growth_rate':[0.5, 1.5, 0.1,5],
-    '2week_growth_rate':[0.5, 2, 0.1,5],
-    'kg/ha/day':[0.01, 4, 0.1,120],
-    'feed_percent_biomass':[0.01, 10, 0,2000],
-    'mlResultWeightCv':[0.01, 10, 0,2000]
+    'Supervivencia': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 50, 'max_value': 100},
+    'biomass_ha': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 25, 'max_value': 10000},
+    'PesoPromedio2':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 50},
+    'cumulative_fcr':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 6},
+    'weekly_fcr':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 6},
+    '1week_growth_rate':{'lower_factor':0.5,'upper_factor': 2, 'min_value': -0.5, 'max_value': 5},
+    '2week_growth_rate':{'lower_factor':0.5,'upper_factor': 2, 'min_value': -0.5, 'max_value': 5},
+    'kg/ha/day':{'lower_factor':0.5,'upper_factor': 2, 'min_value': 0, 'max_value': 200},
+    'feed_percent_biomass':{'lower_factor':0.2,'upper_factor': 3, 'min_value': 0.005, 'max_value': 1},
+    'mlResultWeightCv':{'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 50, 'max_value': 100},
+}
+model_dict = {
+    'Supervivencia': exponential_fit_3d,
+    'biomass_ha': exponential_fit_3d,
+    'PesoPromedio2':exponential_fit_3d,
+    'cumulative_fcr':exponential_fit_3d,
+    'weekly_fcr':exponential_fit_3d,
+    '1week_growth_rate':exponential_fit_3d,
+    '2week_growth_rate':exponential_fit_3d,
+    'kg/ha/day':exponential_fit_3d,
+    'feed_percent_biomass':exponential_fit_3d,
+    'mlResultWeightCv':exponential_fit_3d,
 }
 
 labels_dict = {
@@ -135,44 +137,61 @@ active_cycles.sort_values('pondName', inplace = True)
 pond_cycle_dict = active_cycles.set_index('pondName')['PKCiclo'].to_dict()
 
 
+def remove_outliers(df, x_column, y_column,  upper_factor=4, lower_factor = 0.25, num_intervals=5):
+    # Sort the DataFrame by the time_column
+    df = df.sort_values(by=x_column)
+    # Generate time intervals using qcut
+    df['time_intervals'] = pd.qcut(df[x_column], num_intervals, labels=False)
+    df_list = []
+    # Iterate through each time interval
+    for interval_num in range(num_intervals):
+        interval_df = df[df['time_intervals'] == interval_num]
+        interval_median = interval_df[y_column].median()
+        print(interval_median)
+        upper_threshold = upper_factor * interval_median
+        lower_threshold = lower_factor * interval_median
+        interval_df = interval_df[(interval_df[y_column]< upper_threshold) & (interval_df[y_column]> lower_threshold) ]
+        df_list.append(interval_df)
+    training_df = pd.concat(df_list)
+    return training_df
+
+def set_min_max(df, y_column,  min_value, max_value):
+    # Sort the DataFrame by the time_column
+    return df.loc[(df[y_column]> min_value) & (df[y_column]< max_value)]
+
+def remove_na(df,columns):
+    # Sort the DataFrame by the time_column
+    return df.dropna(subset = columns).copy()
 
 
 
-def clean_df(df, x_variable, y_variable, min_threshold, max_threshold, absolute_min, absolute_max, start_date,end_date):
+
+
+def clean_df(df, x_variable, y_variable, start_date,end_date):
   
-  df = df.dropna(subset=[x_variable, y_variable]).copy()
-  df = df[(df[y_variable] < absolute_max) 
-          & (df[y_variable] > absolute_min) 
-          & (df['cycle_days'] <90)
-          & (df['FechaMuestreo'].dt.date >= start_date)
-          & (df['FechaMuestreo'].dt.date <= end_date)
-          ]
+  y_lower_threshold = param_dict[y_variable]['lower_factor']
+  y_upper_threshold = param_dict[y_variable]['upper_factor']
 
-  if y_variable == 'Supervivencia':
-    df['rate'] = (1 - (df[y_variable]/100)) / df[x_variable]
+  y_min = param_dict[y_variable]['min_value']
+  y_max = param_dict[y_variable]['max_value']
 
-  elif y_variable in ['1week_growth_rate', '2week_growth_rate']:
-    df['rate'] = df[y_variable]
 
-  else:
-    df['rate'] = df[y_variable] / df[x_variable]
-  
-  median = df['rate'].median()
-  print(median)
-  min_rate = median *  min_threshold
-  max_rate = median *  max_threshold
-
-  filtered_df = df[(df['rate'] >= min_rate) & (df['rate'] <= max_rate)]
-  print(filtered_df.shape)
-  return filtered_df
+  new_df = (df.pipe(remove_na,[x_variable, y_variable])
+  .pipe(set_min_max,y_variable, y_min, y_max)
+  .pipe(set_min_max, x_variable, 0,100)
+  .pipe(set_min_max, 'FechaMuestreo', start_date,end_date)
+  .pipe(remove_outliers, x_variable, y_variable, upper_factor=y_upper_threshold, lower_factor = y_lower_threshold)
+ )
+  return new_df
 
 
 
-def get_curve_params(df,y_variable, model, x_variable = 'cycle_days'):
+def get_curve_params(df,y_variable,  x_variable = 'cycle_days'):
   x_train = df[x_variable]
  
   y_train = df[y_variable]
   
+  model = model_dict[y_variable]
 
   curve_params, covariance = curve_fit(model,
                                      x_train,
@@ -191,15 +210,27 @@ def plot_benchmark(curve_params, model, x_min, x_max, increment, x_label, y_labe
                        y_label:y_plot
                        })
 
+def get_variable_df(df, y_variable, start_time, end_time):
+    cleaned_df = clean_df(df, 'cycle_days', y_variable,start_time, end_time)
+
+    model = model_dict[y_variable]
+
+    
+    curve_params = get_curve_params(cleaned_df, y_variable,)
+    plot_df = plot_benchmark(curve_params,model, 5, 91, 1, 'Cycle_Day', y_variable)
+
+
+    return plot_df 
+
 #models ---------------------------------------------------
 def growth_model(time, Linf, K, position, w0):
     return Linf * np.exp(-np.exp(position - K * time)) + w0
 
 
-def exponential_fit(x, a,b,c,d):
+def exponential_fit_3d(x, a,b,c,d):
   return a*x**3 + b*x**2 + c*x + d
 
-def exponential_fit_2_degrees(x, b,c,d):
+def exponential_fit_2d(x, b,c,d):
   return b*x**2 + c*x + d
 def exponential_decay(N0, k, t):
     return N0 * math.exp(-k * t)
@@ -267,31 +298,8 @@ y_variable1 = labels_reverse_dict[sidebar_var1]
 y_variable2 = labels_reverse_dict[sidebar_var2]
 
 
-
-
-
-
-
-def get_variable_df(df, y_variable, model,start_time, end_time):
-    cleaned_df = clean_df(df, 'cycle_days', y_variable, *param_dict[y_variable],start_time, end_time)
-
-    if y_variable == 'mlResultWeightCv':
-       curve_params = get_curve_params(cleaned_df[cleaned_df['cycle_days']>15], y_variable,exponential_fit_2_degrees)
-       plot_df = plot_benchmark(curve_params,exponential_fit_2_degrees, 5, 91, 1, 'Cycle_Day', y_variable)
-    else:
-       curve_params = get_curve_params(cleaned_df, y_variable,model)
-       plot_df = plot_benchmark(curve_params,model, 5, 91, 1, 'Cycle_Day', y_variable)
-    
-    
-    if y_variable == 'Supervivencia':
-       plot_df.to_csv('bravito_survival_benchmark.csv')
-
-    return plot_df 
-
-
-
-variable1_df = get_variable_df(monitorings, y_variable1, exponential_fit, start_time, end_time)
-variable2_df = get_variable_df(monitorings, y_variable2, exponential_fit, start_time, end_time)
+variable1_df = get_variable_df(monitorings, y_variable1, start_time, end_time)
+variable2_df = get_variable_df(monitorings, y_variable2,  start_time, end_time)
 
 if sidebar_cycle:
     cycle_id = int(pond_cycle_dict[sidebar_cycle])

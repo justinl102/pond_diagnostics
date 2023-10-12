@@ -53,3 +53,15 @@ sns.distplot(arr, bins=20)
 st.pyplot(fig)
 
 
+def get_benchmark(df, weight_min, weight_max, model):
+  train_df = df[(df['PesoPromedio2'] > weight_min) & (df['PesoPromedio2'] < weight_max)]
+  x_train = df['cycle_days'] 
+  y_train = df['PesoPromedio'] 
+
+  curve_params, covariance = curve_fit(model,
+                                     x_train,
+                                     y_train,
+                                     p0 = [37.728, 0.02348,0.93, 8.008],
+                                     maxfev = 100000
+                                          )
+  return curve_params

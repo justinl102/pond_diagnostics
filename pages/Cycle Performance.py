@@ -11,15 +11,16 @@ sns.set_style('whitegrid')
 
 cycles = pd.read_csv('cycles_cleaned.csv')
 cycles = cycles[cycles['PesoPromedio2'] >19]
-
+print(cycles.columns)
+print('cycles columns above')
 top10 = (cycles['MnProveedor'].value_counts()[cycles['MnProveedor'].value_counts()> 10]).index
-print(top10)
+cycles['pct_animals_harvested'] = cycles['partial_harvest_qty'] / cycles['CantidadCosechada_harvested']
 # At locations where the neighborhood is NOT in the top 10, 
 # replace the neighborhood with 'OTHER'
 cycles['MnProveedor_category'] = np.where(cycles['MnProveedor'].isin(top10), cycles['MnProveedor'],'Other')
 #cycles['MnProveedor_category'] = cycles.loc[cycles['MnProveedor'].isin((cycles['MnProveedor'].value_counts()[cycles['MnProveedor'].value_counts() < 10]).index), 'MnProveedor'] = 'other'
 
-print(cycles['MnProveedor_category'].value_counts())
+
 cycles['avg_price_kg'] = round(cycles['VentaUSDReal'] / cycles['final_biomass_harvested'],3)
 
 monitorings = pd.read_csv('cycles_cleaned.csv')
@@ -48,7 +49,8 @@ labels_dict = {
     'Supervivencia': 'Survival Rate',
     'cycle_days': 'Cycle Days',
     'cycle_profit_ha_day': 'Profit/Ha/Day',
-    'cycle_total_profit_usd':'Total Profit'
+    'cycle_total_profit_usd':'Total Profit',
+    'pct_animals_harvested': 'Percent of animals partially harvested'
 
 }
 
@@ -70,7 +72,7 @@ category_reverse_dict = dict((v,k) for k,v in category_dict.items())
  
 x_var1 = st.sidebar.selectbox(
     "X Variable",
-    ['Average Weight', 'Cycle Days', 'Density'],
+    ['Average Weight', 'Cycle Days', 'Density', "FCR",'Percent of animals partially harvested'],
     placeholder="Metric #1",
     )
 objective_var2 = st.sidebar.selectbox(
