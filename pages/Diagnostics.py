@@ -94,16 +94,16 @@ def exponential_decay(N0, k, t):
 
 #dictionaries -------------------------------------------------------------
 param_dict = {
-    'Supervivencia': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 50, 'max_value': 100},
-    'biomass_ha': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 25, 'max_value': 10000},
+    'Supervivencia': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 40, 'max_value': 100},
+    'biomass_ha': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 0, 'max_value': 10000},
     'PesoPromedio2':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 50},
     'cumulative_fcr':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 6},
     'weekly_fcr':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 6},
     '1week_growth_rate':{'lower_factor':0.5,'upper_factor': 2, 'min_value': -0.5, 'max_value': 5},
     '2week_growth_rate':{'lower_factor':0.5,'upper_factor': 2, 'min_value': -0.5, 'max_value': 5},
-    'kg/ha/day':{'lower_factor':0.5,'upper_factor': 2, 'min_value': 0, 'max_value': 200},
-    'feed_percent_biomass':{'lower_factor':0.2,'upper_factor': 3, 'min_value': 0.005, 'max_value': 1},
-    'mlResultWeightCv':{'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 50, 'max_value': 100},
+    'kg/ha/day':{'lower_factor':0.5,'upper_factor': 2, 'min_value': 0, 'max_value': 250},
+    'feed_percent_biomass':{'lower_factor':0.2,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
+    'mlResultWeightCv':{'lower_factor':0.25,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
 }
 model_dict = {
     'Supervivencia': exponential_fit_3d,
@@ -178,7 +178,7 @@ def clean_df(df, x_variable, y_variable, start_date,end_date):
 
   new_df = (df.pipe(remove_na,[x_variable, y_variable])
   .pipe(set_min_max,y_variable, y_min, y_max)
-  .pipe(set_min_max, x_variable, 0,100)
+  .pipe(set_min_max, x_variable, 0,120)
   .pipe(set_min_max, 'FechaMuestreo', start_date,end_date)
   .pipe(remove_outliers, x_variable, y_variable, upper_factor=y_upper_threshold, lower_factor = y_lower_threshold)
  )
@@ -319,8 +319,8 @@ else:
         
 
 if second_graph:
-    variable3_df = get_variable_df(monitorings, y_variable3, exponential_fit, start_time, end_time)
-    variable4_df = get_variable_df(monitorings, y_variable4, exponential_fit, start_time, end_time)
+    variable4_df = get_variable_df(monitorings, y_variable3, start_time, end_time)
+    variable4_df = get_variable_df(monitorings, y_variable4,  start_time, end_time)
     if sidebar_cycle:   
         plot_current_cycle3 = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable3]]
 
