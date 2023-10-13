@@ -85,12 +85,11 @@ def growth_model(time, Linf, K, position, w0):
 def exponential_fit_3d(x, a,b,c,d):
   return a*x**3 + b*x**2 + c*x + d
 
+
 def exponential_fit_2d(x, b,c,d):
   return b*x**2 + c*x + d
-
-def exponential_decay(N0, k, t):
-    return N0 * math.exp(-k * t)
-
+def exponential_decay(x, a, b):
+    return a * np.exp(b * x)
 
 #dictionaries -------------------------------------------------------------
 param_dict = {
@@ -106,16 +105,16 @@ param_dict = {
     'mlResultWeightCv':{'lower_factor':0.25,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
 }
 model_dict = {
-    'Supervivencia': exponential_fit_3d,
-    'biomass_ha': exponential_fit_3d,
-    'PesoPromedio2':exponential_fit_3d,
-    'cumulative_fcr':exponential_fit_3d,
-    'weekly_fcr':exponential_fit_3d,
-    '1week_growth_rate':exponential_fit_3d,
-    '2week_growth_rate':exponential_fit_3d,
-    'kg/ha/day':exponential_fit_3d,
-    'feed_percent_biomass':exponential_fit_3d,
-    'mlResultWeightCv':exponential_fit_3d,
+    'Supervivencia': {"model":exponential_decay,"p0":[99.17700584718783,-0.005269]},
+    'biomass_ha': {"model": exponential_fit_3d,"p0":None},
+    'PesoPromedio2':{"model": exponential_fit_3d,"p0":None},
+    'cumulative_fcr':{"model": exponential_fit_3d,"p0":None},
+    'weekly_fcr':{"model": exponential_fit_3d,"p0":None},
+    '1week_growth_rate':{"model": exponential_fit_3d,"p0":None},
+    '2week_growth_rate':{"model": exponential_fit_3d,"p0":None},
+    'kg/ha/day':{"model": exponential_fit_3d,"p0":None},
+    'feed_percent_biomass':{"model": exponential_fit_3d,"p0":None},
+    'mlResultWeightCv':{"model": exponential_fit_3d,"p0":None},
 }
 
 labels_dict = {
@@ -191,11 +190,12 @@ def get_curve_params(df,y_variable,  x_variable = 'cycle_days'):
  
   y_train = df[y_variable]
   
-  model = model_dict[y_variable]
-
+  model = model_dict[y_variable]['model']
+  p0 = model_dict[y_variable]['p0']
   curve_params, covariance = curve_fit(model,
                                      x_train,
                                      y_train,
+                                     p0 = p0,
                                      maxfev = 100000
                                           )
   return curve_params 
@@ -213,7 +213,7 @@ def plot_benchmark(curve_params, model, x_min, x_max, increment, x_label, y_labe
 def get_variable_df(df, y_variable, start_time, end_time):
     cleaned_df = clean_df(df, 'cycle_days', y_variable,start_time, end_time)
 
-    model = model_dict[y_variable]
+    model = model_dict[y_variable]['model']
 
     
     curve_params = get_curve_params(cleaned_df, y_variable,)
@@ -222,24 +222,18 @@ def get_variable_df(df, y_variable, start_time, end_time):
 
     return plot_df 
 
-#models ---------------------------------------------------
+def get_title(cycle_id, active_cycles):
+    current_cycle_density = active_cycles.loc[active_cycles['PKCiclo'] == cycle_id, 'density_ha'].iloc[0]
+    current_cycle_ha = active_cycles.loc[active_cycles['PKCiclo'] == cycle_id, 'Hectareas'].iloc[0]
+    title = str(sidebar_cycle) + " - " + str(round(current_cycle_ha,2))+ " Ha" + " - " + str(current_cycle_density)+ " animals/ha" 
+    return title#models ---------------------------------------------------
 def growth_model(time, Linf, K, position, w0):
     return Linf * np.exp(-np.exp(position - K * time)) + w0
 
 
-def exponential_fit_3d(x, a,b,c,d):
-  return a*x**3 + b*x**2 + c*x + d
 
-def exponential_fit_2d(x, b,c,d):
-  return b*x**2 + c*x + d
-def exponential_decay(N0, k, t):
-    return N0 * math.exp(-k * t)
 #sidebar ---------------------------------------------------
 cycle_options = pond_cycle_dict.keys() 
-
-
-
-
 
 sidebar_var1 = st.sidebar.selectbox(
     "Metric #1",
@@ -286,200 +280,97 @@ if second_graph:
         placeholder="Metric #4",
         )
 
-    y_variable3 = labels_reverse_dict[sidebar_var3]
-    y_variable4 = labels_reverse_dict[sidebar_var4]
+
+def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_cycles, harvests, start_time, end_time, active_cycles, colors = ["#83c9ff","#0068c9"], show_title = False):
+    y_variable1 = labels_reverse_dict[y_variable_label1]
+    y_variable2 = labels_reverse_dict[y_variable_label2]
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    title = ""
+
+    if show_cycles: 
+        cycle_id = int(pond_cycle_dict[sidebar_cycle])
+        
     
+        plot_current_cycle = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable1]]
 
 
-   
-
-   
-y_variable1 = labels_reverse_dict[sidebar_var1]
-y_variable2 = labels_reverse_dict[sidebar_var2]
-
-
-variable1_df = get_variable_df(monitorings, y_variable1, start_time, end_time)
-variable2_df = get_variable_df(monitorings, y_variable2,  start_time, end_time)
-
-if sidebar_cycle:
-    cycle_id = int(pond_cycle_dict[sidebar_cycle])
-  #  cycle_id = 5440
-    cycle_raleos =  harvests.loc[
+        plot_current_cycle2 = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable2]]
+        if show_title:
+            title = get_title(cycle_id, active_cycles)
+        cycle_raleos =  harvests.loc[
                         (harvests['Parcial'] == 1) & 
                         (harvests['PKCiclo'] == cycle_id)]
-    print(cycle_raleos)
-    
-    plot_current_cycle = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable1]]
-
-
-    plot_current_cycle2 = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable2]]
-else:
-    cycle_raleos = pd.DataFrame()
-    cycle_id = None
-        
-
-if second_graph:
-    variable4_df = get_variable_df(monitorings, y_variable3, start_time, end_time)
-    variable4_df = get_variable_df(monitorings, y_variable4,  start_time, end_time)
-    if sidebar_cycle:   
-        plot_current_cycle3 = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable3]]
-
-
-        plot_current_cycle4 = monitorings.loc[monitorings['PKCiclo'] == cycle_id, ['cycle_days', y_variable4]]
-
-
-if sidebar_cycle:
-    current_cycle_density = active_cycles.loc[active_cycles['PKCiclo'] == cycle_id, 'density_ha'].iloc[0]
-    current_cycle_ha = active_cycles.loc[active_cycles['PKCiclo'] == cycle_id, 'Hectareas'].iloc[0]
-    title = str(sidebar_cycle) + " - " + str(round(current_cycle_ha,2))+ " Ha" + " - " + str(current_cycle_density)+ " animals/ha" 
-else:
-   current_cycle_density = None
-   title = ""
 
 
 
-    # Create figure with secondary y-axis
-fig = make_subplots(specs=[[{"secondary_y": True}]])
-fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+    # Set x-axis title
+        if show_raleos & len(cycle_raleos)>0:
+            for i in cycle_raleos['cycle_days']:
+                fig.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)
+        fig.add_trace(
+            go.Scatter(x=plot_current_cycle['cycle_days'], 
+                    y=plot_current_cycle[y_variable1], 
+                    name= "Current Cycle " + labels_dict[y_variable1],
+                    line=dict(color=colors[0])
+                    ),
+            secondary_y=False,
+            
+        )
+        fig.add_trace(
+            go.Scatter(x=plot_current_cycle2['cycle_days'], 
+                    y=plot_current_cycle2[y_variable2], 
+                    name= "Current Cycle " + labels_dict[y_variable2],
+                    line=dict(color=colors[1])
+                    
+                    
+                    ),
+            secondary_y=True,
+            
+        )
 
-
-    # Add traces
-if show_benchmarks:
+    if show_benchmarks:
+        variable1_df = get_variable_df(monitorings, y_variable1, start_time, end_time)
+        variable2_df = get_variable_df(monitorings, y_variable2,  start_time, end_time)
         fig.add_trace(
             go.Scatter(x=variable1_df['Cycle_Day'], 
                     y=variable1_df[y_variable1], 
                     name=labels_dict[y_variable1],
-                    line=dict(color="#0068c9", dash="dash")),
+                    line=dict(color=colors[0], dash="dash")),
             secondary_y=False,
             
         )
-if sidebar_cycle:
-    fig.add_trace(
-            go.Scatter(x=plot_current_cycle['cycle_days'], 
-                    y=plot_current_cycle[y_variable1], 
-                    name= "Current Cycle " + labels_dict[y_variable1],
-                    line=dict(color="#0068c9")
-                    
-                    
-                    ),
-            secondary_y=False,
-            
-        )
-
-   
-
-if show_benchmarks:
-    fig.add_trace(
+        fig.add_trace(
             go.Scatter(x=variable2_df['Cycle_Day'], 
                     y=variable2_df[y_variable2], 
                     name=labels_dict[y_variable2],
-                    line=dict(color="#83c9ff",dash="dash")
-                    
+                    line=dict(color=colors[1],dash="dash")
                     ),
             secondary_y=True,
-            
-        )
-if sidebar_cycle:
-    fig.add_trace(
-        go.Scatter(x=plot_current_cycle2['cycle_days'], 
-                    y=plot_current_cycle2[y_variable2], 
-                    name= "Current Cycle " + labels_dict[y_variable2],
-                    line=dict(color="#83c9ff")
-                    
-                    
-                    ),
-            secondary_y=True,
-            
         )
 
-if second_graph:
-    if show_benchmarks:
-        fig2.add_trace(
-                    go.Scatter(x=variable3_df['Cycle_Day'], 
-                            y=variable3_df[y_variable3], 
-                            name=labels_dict[y_variable3],
-                            line=dict(color="#FFB983", dash="dash")),
-                    secondary_y=False,
-                    
-                )  
-        fig2.add_trace(
-                    go.Scatter(x=variable4_df['Cycle_Day'], 
-                            y=variable4_df[y_variable4], 
-                            name=labels_dict[y_variable4],
-                            line=dict(color="#C900BB", dash="dash")),
-                    secondary_y=True,
-                    
-                )  
-
-    if sidebar_cycle:        
-        fig2.add_trace(
-        go.Scatter(x=plot_current_cycle3['cycle_days'], 
-                    y=plot_current_cycle3[y_variable3], 
-                    name= "Current Cycle " + labels_dict[y_variable3],
-                    line=dict(color="#FFB983")
-                    
-                    
-                    ),
-            secondary_y=False,
-            
-        ) 
-        fig2.add_trace(
-        go.Scatter(x=plot_current_cycle4['cycle_days'], 
-                    y=plot_current_cycle4[y_variable4], 
-                    name= "Current Cycle " + labels_dict[y_variable4],
-                    line=dict(color="#C900BB")
-                    
-                    
-                    ),
-            secondary_y=True,
-            
-        )
-    fig2.update_yaxes(title_text=labels_dict[y_variable3], secondary_y=False)
-    fig2.update_yaxes(title_text=labels_dict[y_variable4], secondary_y=True)
-
-print(cycle_raleos.head())
-
-if show_raleos & len(cycle_raleos)>0:
-    for i in cycle_raleos['cycle_days']:
-        fig.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)
-        if second_graph:
-            fig2.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)
-   
-    # Add figure title
-fig.update_layout(
-        title_text=title,
-        yaxis2=dict(
-            side="right",
-            tickmode="sync",
-        ),
-    )
-
-fig2.update_layout(
-        yaxis2=dict(
-            side="right",
-            tickmode="sync",
-        ),
-    )
-
-    # Set x-axis title
-fig.update_xaxes(title_text="Cycle Days")
-fig2.update_xaxes(title_text="Cycle Days")
+        
+    
+    fig.update_layout(
+    title_text=title,
+    yaxis2=dict(
+        side="right",
+        tickmode="sync",
+    ))
+    fig.update_xaxes(title_text="Cycle Days")
+    fig.update_yaxes(title_text=labels_dict[y_variable1], secondary_y=False)
+    fig.update_yaxes(title_text=labels_dict[y_variable2], secondary_y=True)
 
     # Set y-axes titles
-fig.update_yaxes(title_text=labels_dict[y_variable1], secondary_y=False)
-fig.update_yaxes(title_text=labels_dict[y_variable2], secondary_y=True)
 
-
-    
-
-st.plotly_chart(fig, use_container_width=True)
-
+    return fig
+try_chart = generate_graph(sidebar_var1, sidebar_var2, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,show_title = True)
+st.plotly_chart(try_chart, use_container_width=True)
 if second_graph:
-    st.plotly_chart(fig2, use_container_width=True)
-if show_raleos & len(cycle_raleos)>0:
-    cycle_raleos.rename(columns = {'Fecha':'Date','cycle_days':'Cycle Days','CantidadCosechada':'Quantity','PesoPromedio':'Average Weight'}, inplace = True)
-    
-    cycle_raleos[['PKCosecha','Date','Cycle Days','Quantity','Average Weight' ]]
+    try_chart2 = generate_graph(sidebar_var3, sidebar_var4, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,colors=["#FFB983","#C900BB"], show_title = False)
+    st.plotly_chart(try_chart2, use_container_width=True)
+
+
 
 
     # Using object notation

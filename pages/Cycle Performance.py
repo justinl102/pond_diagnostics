@@ -101,6 +101,25 @@ cycles['cycle_total_profit_usd'] = cycles['VentaUSDReal'] - cycles['cycle_fixed_
 cycles['cycle_profit_ha_day'] = cycles['cycle_total_profit_usd'] / cycles['Hectareas']/ cycles['cycle_days']
 
 show_trendlines_only = st.sidebar.toggle('Show trendline only', value = False)
+remove_outliers = st.sidebar.toggle('Remove Outliers', value = False)
+
+def get_outlier_threshold(cycle_df, y_variable, magnitude):
+
+    data = cycle_df[y_variable].values
+
+    if len(data) < 3:
+        return cycle_df # No outliers to remove for small datasets
+
+    median = np.median(data)
+    deviation = np.abs(data - median)
+    median_absolute_deviation = np.median(deviation)
+    threshold = magnitude * median_absolute_deviation
+
+    is_outlier = np.abs(data - median) > threshold
+    filtered_df = cycle_df[~is_outlier]
+
+    return filtered_df
+
 
 if bin_str:
     bin_str_original = category_reverse_dict[bin_str]
@@ -117,7 +136,6 @@ cycles['avg_price_kg'] = round(cycles['VentaUSDReal'] / cycles['final_biomass_ha
 
 cycles_df = cycles[(cycles['FechaSiembra'].dt.date >= start_time)
                    & (cycles['FechaSiembra'].dt.date <= end_time)
-                   
                    ]
 if bin_str:
     if bin_str in ['Density',
@@ -128,20 +146,23 @@ if bin_str:
 
 x_variable = labels_reverse_dict[x_var1]
 objective_variable_str = labels_reverse_dict[objective_var2]
-
+if remove_outliers:
+    plot_df = get_outlier_threshold(cycles_df,objective_variable_str,8 )
+    plot_df = get_outlier_threshold(plot_df,x_variable,8 )
+else: 
+    plot_df = cycles_df
 
 if bin_str:
 
-    fig = px.scatter(cycles_df, 
+    fig = px.scatter(plot_df, 
                         x=x_variable, 
                         y=objective_variable_str, 
                         color=bin_str_binned,
                     hover_data=['IDPiscina'],
                     trendline="ols"
-                    
                     )
 else:
-    fig = px.scatter(cycles_df, 
+    fig = px.scatter(plot_df, 
                         x=x_variable, 
                         y=objective_variable_str, 
                         color=None,
@@ -156,10 +177,10 @@ if show_trendlines_only:
     fig.update_traces(showlegend=True)
 st.plotly_chart(fig, use_container_width=True)
 if bin_str:
-    table_df = cycles_df.groupby(bin_str_binned)[objective_variable_str].describe().round(2)
+    table_df = plot_df.groupby(bin_str_binned)[objective_variable_str].describe().round(2)
     table_df.sort_values('50%',inplace = True )
 else:
-    table_df = cycles_df[objective_variable_str].describe().T.round(2)
+    table_df = plot_df[objective_variable_str].describe().T.round(2)
 
 table_df
 
