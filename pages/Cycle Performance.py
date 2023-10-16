@@ -27,6 +27,7 @@ cycles['avg_price_kg'] = round(cycles['VentaUSDReal'] / cycles['final_biomass_ha
 
 cycles['FechaSiembra'] = pd.to_datetime(cycles['FechaSiembra'])
 
+
 max_date = cycles['FechaSiembra'].max().date()
 min_date = cycles['FechaSiembra'].min().date()
 
