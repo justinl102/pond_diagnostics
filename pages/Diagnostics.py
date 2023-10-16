@@ -17,7 +17,13 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 sns.set_style('whitegrid')
 
-monitorings = pd.read_csv('monitoring_cleaned.csv')
+@st.cache_data
+def get_dataframe(file_name):
+    return pd.read_csv(file_name)
+
+monitorings = get_dataframe('monitoring_cleaned.csv')
+harvests = get_dataframe('bravito_harvests.csv')
+active_cycles = get_dataframe('active_cycles.csv')
 
 
 monitorings['FechaMuestreo'] = pd.to_datetime(monitorings['FechaMuestreo']).dt.date
@@ -27,10 +33,6 @@ monitorings['feed_percent_biomass'] =   (monitorings['KilosAlimento']/7) / monit
 max_date = monitorings['FechaMuestreo'].max()
 min_date = monitorings['FechaMuestreo'].min()
 
-harvests = pd.read_csv('bravito_harvests.csv')
-active_cycles = pd.read_csv('active_cycles.csv')
-print(harvests.head())
-#last_cycle = monitorings.loc[monitorings.groupby('')]
 
 def get_decreasing(df):
     data = (

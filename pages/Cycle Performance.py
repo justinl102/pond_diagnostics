@@ -9,21 +9,21 @@ import seaborn as sns
 from datetime import datetime
 sns.set_style('whitegrid')
 
-cycles = pd.read_csv('cycles_cleaned.csv')
+@st.cache_data
+def get_dataframe(file_name):
+    return pd.read_csv(file_name)
+
+cycles = get_dataframe('cycles_cleaned.csv')
 cycles = cycles[cycles['PesoPromedio2'] >19]
-print(cycles.columns)
-print('cycles columns above')
+
 top10 = (cycles['MnProveedor'].value_counts()[cycles['MnProveedor'].value_counts()> 10]).index
 cycles['pct_animals_harvested'] = cycles['partial_harvest_qty'] / cycles['CantidadCosechada_harvested']
-# At locations where the neighborhood is NOT in the top 10, 
-# replace the neighborhood with 'OTHER'
+print(cycles.columns)
 cycles['MnProveedor_category'] = np.where(cycles['MnProveedor'].isin(top10), cycles['MnProveedor'],'Other')
 #cycles['MnProveedor_category'] = cycles.loc[cycles['MnProveedor'].isin((cycles['MnProveedor'].value_counts()[cycles['MnProveedor'].value_counts() < 10]).index), 'MnProveedor'] = 'other'
-
+cycles['qty_harvested_ha'] = round(cycles['CantidadCosechada_harvested'] / cycles['Hectareas'])
 
 cycles['avg_price_kg'] = round(cycles['VentaUSDReal'] / cycles['final_biomass_harvested'],3)
-
-monitorings = pd.read_csv('cycles_cleaned.csv')
 
 cycles['FechaSiembra'] = pd.to_datetime(cycles['FechaSiembra'])
 
@@ -31,10 +31,6 @@ max_date = cycles['FechaSiembra'].max().date()
 min_date = cycles['FechaSiembra'].min().date()
 
 #profit calculation 
-
-
-
-monitorings = pd.read_csv('monitoring_cleaned.csv')
 
 labels_dict = {
     'avg_price_kg': 'Survival Rate',
@@ -50,7 +46,8 @@ labels_dict = {
     'cycle_days': 'Cycle Days',
     'cycle_profit_ha_day': 'Profit/Ha/Day',
     'cycle_total_profit_usd':'Total Profit',
-    'pct_animals_harvested': 'Percent of animals partially harvested'
+    'pct_animals_harvested': 'Percent of animals partially harvested',
+    'qty_harvested_ha':'Animals Harvested/Ha'
 
 }
 
@@ -63,21 +60,17 @@ category_dict = {
 def bin_continuous(series, n_bins):
     return pd.qcut(series, n_bins, precision = 0)
 
-
-
-
-
 labels_reverse_dict = dict((v,k) for k,v in labels_dict.items())
 category_reverse_dict = dict((v,k) for k,v in category_dict.items())
  
 x_var1 = st.sidebar.selectbox(
     "X Variable",
-    ['Average Weight', 'Cycle Days', 'Density', "FCR",'Percent of animals partially harvested'],
+    ['Average Weight', 'Cycle Days', 'Density', "FCR",'Animals Harvested/Ha'],
     placeholder="Metric #1",
     )
 objective_var2 = st.sidebar.selectbox(
     "Y Variable",
-    ['FCR', 'Avg. Weekly Growth Rate','Revenue/Ha/Day','Avg. Price KG','Profit/Ha/Day','Total Profit', 'Survival Rate'],
+    ['FCR', 'Avg. Weekly Growth Rate','Revenue/Ha/Day','Avg. Price KG','Profit/Ha/Day','Total Profit', 'Survival Rate','Animals Harvested/Ha'],
     placeholder="Objective",
     )
 bin_str = st.sidebar.selectbox(
@@ -100,7 +93,7 @@ cycles['cycle_total_profit_usd'] = cycles['VentaUSDReal'] - cycles['cycle_fixed_
 
 cycles['cycle_profit_ha_day'] = cycles['cycle_total_profit_usd'] / cycles['Hectareas']/ cycles['cycle_days']
 
-show_trendlines_only = st.sidebar.toggle('Show trendline only', value = False)
+show_trendlines_only = st.sidebar.toggle('Show Trendline Only', value = False)
 remove_outliers = st.sidebar.toggle('Remove Outliers', value = False)
 
 def get_outlier_threshold(cycle_df, y_variable, magnitude):
