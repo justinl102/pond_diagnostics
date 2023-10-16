@@ -15,7 +15,7 @@ def get_dataframe(file_name):
 
 cycles = get_dataframe('cycles_cleaned.csv')
 cycles = cycles[cycles['PesoPromedio2'] >19]
-
+print(cycles['cycle_survival'])
 top10 = (cycles['MnProveedor'].value_counts()[cycles['MnProveedor'].value_counts()> 10]).index
 cycles['pct_animals_harvested'] = cycles['partial_harvest_qty'] / cycles['CantidadCosechada_harvested']
 print(cycles.columns)
@@ -34,6 +34,23 @@ min_date = cycles['FechaSiembra'].min().date()
 #profit calculation 
 
 labels_dict = {
+    'rev_ha_day':'Revenue/Ha/Day',
+    'cycle_feed_ha_day': 'Feed/Ha/Day',
+    'cycle_weekly_growth_rate':'Avg. Weekly Growth Rate',
+    'MnProveedor_category':'Supplier',
+    'cycle_fcr':'FCR',
+    'avg_price_kg': 'Avg. Price KG',
+    'density_ha':'Density',
+    'PesoPromedio2':'Average Weight',
+    'cycle_survival': 'Survival Rate',
+    'cycle_days': 'Cycle Days',
+    'cycle_profit_ha_day': 'Profit/Ha/Day',
+    'cycle_total_profit_usd':'Total Profit',
+    'pct_animals_harvested': 'Percent of animals partially harvested',
+    'qty_harvested_ha':'Animals Harvested/Ha'
+
+}
+label_dict_esp = {
     'avg_price_kg': 'Survival Rate',
     'rev_ha_day':'Revenue/Ha/Day',
     'cycle_feed_ha_day': 'Feed/Ha/Day',
@@ -43,7 +60,7 @@ labels_dict = {
     'avg_price_kg': 'Avg. Price KG',
     'density_ha':'Density',
     'PesoPromedio2':'Average Weight',
-    'Supervivencia': 'Survival Rate',
+    'cycle_survival': 'Survival Rate',
     'cycle_days': 'Cycle Days',
     'cycle_profit_ha_day': 'Profit/Ha/Day',
     'cycle_total_profit_usd':'Total Profit',
@@ -55,7 +72,6 @@ labels_dict = {
 category_dict = {
     'MnProveedor_category':'Supplier',
     'density_ha':'Density',
-    'Supervivencia': 'Survival Rate',
 }
 
 def bin_continuous(series, n_bins):
