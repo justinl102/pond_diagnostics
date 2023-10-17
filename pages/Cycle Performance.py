@@ -14,7 +14,7 @@ sns.set_style('whitegrid')
 if 'language' not in st.session_state:
     st.session_state['language'] = 'ESP'
 
-@st.cache_data
+#@st.cache_data
 def get_dataframe(file_name):
     return pd.read_csv(file_name)
 

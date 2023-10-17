@@ -20,7 +20,7 @@ if 'language' not in st.session_state:
     st.session_state['language'] = 'ESP'
 
 
-@st.cache_data
+#@st.cache_data
 def get_dataframe(file_name):
     return pd.read_csv(file_name)
 
@@ -169,7 +169,7 @@ def remove_outliers(df, x_column, y_column,  upper_factor=4, lower_factor = 0.25
     for interval_num in range(num_intervals):
         interval_df = df[df['time_intervals'] == interval_num]
         interval_median = interval_df[y_column].median()
-        print(interval_median)
+        
         upper_threshold = upper_factor * interval_median
         lower_threshold = lower_factor * interval_median
         interval_df = interval_df[(interval_df[y_column]< upper_threshold) & (interval_df[y_column]> lower_threshold) ]
@@ -326,7 +326,7 @@ if second_graph:
         )
 
 
-def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_cycles, harvests, start_time, end_time, active_cycles, colors = ["#83c9ff","#0068c9"], show_title = False):
+def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_cycles, harvests, start_time, end_time, active_cycles,show_raleos_status, colors = ["#83c9ff","#0068c9"], show_title = False, ):
     y_variable1 = labels_reverse_dict[y_variable_label1]
     y_variable2 = labels_reverse_dict[y_variable_label2]
 
@@ -350,13 +350,11 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
 
 
     # Set x-axis title
-        if show_raleos & len(cycle_raleos)>0:
-            for i in cycle_raleos['cycle_days']:
-                fig.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)
+        
         fig.add_trace(
             go.Scatter(x=plot_current_cycle['cycle_days'], 
                     y=plot_current_cycle[y_variable1], 
-                    name= "Current Cycle " + labels_dict[y_variable1],
+                    name= "Ciclo activo " + labels_dict[y_variable1],
                     line=dict(color=colors[0])
                     ),
             secondary_y=False,
@@ -365,7 +363,7 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
         fig.add_trace(
             go.Scatter(x=plot_current_cycle2['cycle_days'], 
                     y=plot_current_cycle2[y_variable2], 
-                    name= "Current Cycle " + labels_dict[y_variable2],
+                    name= "Ciclo activo " + labels_dict[y_variable2],
                     line=dict(color=colors[1])
                     
                     
@@ -393,6 +391,9 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
                     ),
             secondary_y=True,
         )
+    if show_raleos_status & len(cycle_raleos)>0:
+        for i in cycle_raleos['cycle_days']:
+            fig.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)    
 
         
     
@@ -409,10 +410,10 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
     # Set y-axes titles
 
     return fig
-try_chart = generate_graph(sidebar_var1, sidebar_var2, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,show_title = True)
+try_chart = generate_graph(sidebar_var1, sidebar_var2, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,show_raleos,show_title = True)
 st.plotly_chart(try_chart, use_container_width=True)
 if second_graph:
-    try_chart2 = generate_graph(sidebar_var3, sidebar_var4, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,colors=["#FFB983","#C900BB"], show_title = False)
+    try_chart2 = generate_graph(sidebar_var3, sidebar_var4, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,show_raleos, colors=["#FFB983","#C900BB"], show_title = False)
     st.plotly_chart(try_chart2, use_container_width=True)
 
 
