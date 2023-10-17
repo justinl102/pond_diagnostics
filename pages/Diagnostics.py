@@ -16,6 +16,9 @@ from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 sns.set_style('whitegrid')
+if 'language' not in st.session_state:
+    st.session_state['language'] = 'ESP'
+
 
 @st.cache_data
 def get_dataframe(file_name):
@@ -24,7 +27,7 @@ def get_dataframe(file_name):
 monitorings = get_dataframe('monitoring_cleaned.csv')
 harvests = get_dataframe('bravito_harvests.csv')
 active_cycles = get_dataframe('active_cycles.csv')
-
+active_cycles = active_cycles[active_cycles['PesoPromedio2'] >= 2]
 
 monitorings['FechaMuestreo'] = pd.to_datetime(monitorings['FechaMuestreo']).dt.date
 
@@ -73,7 +76,6 @@ def clip_extreme_growth(df, mini, maxi):
   return df[(df['daily_growth']>=mini_growth) & (df['daily_growth']<=maxi_growth)]
 
 def print_shape(df):
-  print(df.shape)
   return df
 
 
@@ -95,16 +97,16 @@ def exponential_decay(x, a, b):
 
 #dictionaries -------------------------------------------------------------
 param_dict = {
-    'Supervivencia': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 40, 'max_value': 100},
-    'biomass_ha': {'lower_factor':0.7,'upper_factor': 1.5, 'min_value': 0, 'max_value': 10000},
-    'PesoPromedio2':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 50},
-    'cumulative_fcr':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 6},
-    'weekly_fcr':{'lower_factor':0.5,'upper_factor': 1.5, 'min_value': 0, 'max_value': 6},
-    '1week_growth_rate':{'lower_factor':0.5,'upper_factor': 2, 'min_value': -0.5, 'max_value': 5},
-    '2week_growth_rate':{'lower_factor':0.5,'upper_factor': 2, 'min_value': -0.5, 'max_value': 5},
-    'kg/ha/day':{'lower_factor':0.5,'upper_factor': 2, 'min_value': 0, 'max_value': 250},
-    'feed_percent_biomass':{'lower_factor':0.2,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
-    'mlResultWeightCv':{'lower_factor':0.25,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
+    'Supervivencia': {'lower_factor':0.25,'upper_factor': 2, 'min_value': 40, 'max_value': 100},
+    'biomass_ha': {'lower_factor':0.25,'upper_factor': 4, 'min_value': 0, 'max_value': 10000},
+    'PesoPromedio2':{'lower_factor':0.1,'upper_factor': 4, 'min_value': 0, 'max_value': 50},
+    'cumulative_fcr':{'lower_factor':0.25,'upper_factor': 3, 'min_value': 0, 'max_value': 6},
+    'weekly_fcr':{'lower_factor':0.1,'upper_factor': 5, 'min_value': 0, 'max_value': 6},
+    '1week_growth_rate':{'lower_factor':0.1,'upper_factor': 3, 'min_value': -0.5, 'max_value': 5},
+    '2week_growth_rate':{'lower_factor':0.1,'upper_factor': 3, 'min_value': -0.5, 'max_value': 5},
+    'kg/ha/day':{'lower_factor':0.1,'upper_factor': 3, 'min_value': 0, 'max_value': 250},
+    'feed_percent_biomass':{'lower_factor':0.1,'upper_factor': 4, 'min_value': 0, 'max_value': 1},
+    'mlResultWeightCv':{'lower_factor':0.1,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
 }
 model_dict = {
     'Supervivencia': {"model":exponential_decay,"p0":[99.17700584718783,-0.005269]},
@@ -119,7 +121,7 @@ model_dict = {
     'mlResultWeightCv':{"model": exponential_fit_3d,"p0":None},
 }
 
-labels_dict = {
+labels_dict_en = {
     'Supervivencia': 'Survival Rate',
     'biomass_ha': 'Biomass/Ha',
     'PesoPromedio2':'Average Weight',
@@ -131,6 +133,25 @@ labels_dict = {
     'feed_percent_biomass': "Feed - % of biomass",
     'mlResultWeightCv':"CV"
 }
+
+labels_dict_esp = {
+'Supervivencia': 'Supervivencia',
+    'biomass_ha': 'Biomasa/Ha',
+    'PesoPromedio2':'Peso Promedio',
+    'cumulative_fcr':'FCA Acumulativo',
+    'weekly_fcr':'FCA Semanal',
+    '1week_growth_rate':'Crecimiento-1 Semanas',
+    '2week_growth_rate':'Crecimiento-2 Semanas',
+    'kg/ha/day': 'KG/Ha/Dias',
+    'feed_percent_biomass': "Alimentacion - % de biomasa",
+    'mlResultWeightCv':"CV"
+}
+if st.session_state.language == 'ESP':
+    labels_dict = labels_dict_esp
+
+else:
+    labels_dict = labels_dict_en
+
 labels_reverse_dict = dict((v,k) for k,v in labels_dict.items())
 active_cycles = pd.read_csv('active_cycles.csv')
 
@@ -231,6 +252,28 @@ def get_title(cycle_id, active_cycles):
     return title#models ---------------------------------------------------
 def growth_model(time, Linf, K, position, w0):
     return Linf * np.exp(-np.exp(position - K * time)) + w0
+if st.session_state['language'] == 'ENG':
+    metric1_placeholder = "Metric #1"
+    metric2_placeholder = "Metric #2"
+    metric3_placeholder = "Metric #3"
+    metric4_placeholder = "Metric #4"
+    pond_placeholder = "Pond"
+    benchmark_placeholder = "Date Window"
+    show_benchmarks_label = "Show Benchmarks"
+    show_second_graph_label = "Show Second Graph"
+    show_raleos_label = "Show Raleos"
+    x_axis_text = 'Cycle Days'
+else: 
+    metric1_placeholder = "Variable #1"
+    metric2_placeholder = "Variable #2"
+    metric3_placeholder = "Variable #3"
+    metric4_placeholder = "Variable #4"
+    pond_placeholder = "Piscina"
+    benchmark_placeholder = "Fechas de referencia"
+    show_benchmarks_label = "Mostrar puntos de referencia"
+    show_second_graph_label = "Mostrar segundo gráfico"
+    show_raleos_label = "Mostrar Raleos"
+    x_axis_text = 'Días del ciclo'
 
 
 
@@ -238,50 +281,54 @@ def growth_model(time, Linf, K, position, w0):
 cycle_options = pond_cycle_dict.keys() 
 
 sidebar_var1 = st.sidebar.selectbox(
-    "Metric #1",
+    metric1_placeholder,
     list(labels_reverse_dict.keys()),
  
-    placeholder="Metric #1",
+    placeholder=metric1_placeholder,
     )
 
 sidebar_var2 = st.sidebar.selectbox(
-    "Metric #2",
+    metric2_placeholder,
     list(labels_reverse_dict.keys()),
 
-    placeholder="Metric #2",
+    placeholder=metric2_placeholder,
     )
 
 
 sidebar_cycle = st.sidebar.selectbox(
-    "Pond",
+    pond_placeholder,
     cycle_options,
     index=None,
-    placeholder="Select Pond",
+    placeholder=pond_placeholder,
     )
 
 start_time, end_time = st.sidebar.slider(
-        "Benchmark Window",
+        benchmark_placeholder,
         value=[min_date,max_date],
         format="MM/DD/YY")
 
-show_benchmarks = st.sidebar.toggle('Show Benchmarks', value = True)
+show_benchmarks = st.sidebar.toggle(show_benchmarks_label, value = True)
 
-second_graph = st.sidebar.toggle('Show Second Graph')
-show_raleos = st.sidebar.toggle('Show Raleos', value = False)
+second_graph = st.sidebar.toggle(show_second_graph_label)
+show_raleos = st.sidebar.toggle(show_raleos_label, value = False)
 
 if second_graph:
     sidebar_var3 = st.sidebar.selectbox(
-        "Metric #3",
+        metric3_placeholder,
         list(labels_reverse_dict.keys()),
-        placeholder="Metric #3",
+        placeholder=metric3_placeholder,
         )
 
     sidebar_var4 = st.sidebar.selectbox(
-        "Metric #4",
+        metric4_placeholder,
         list(labels_reverse_dict.keys()),
-        placeholder="Metric #4",
+        placeholder=metric4_placeholder,
         )
-
+option = st.sidebar.selectbox(
+    'Language',
+    ("ENG", "ESP"),
+    key = "language"
+)
 
 def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_cycles, harvests, start_time, end_time, active_cycles, colors = ["#83c9ff","#0068c9"], show_title = False):
     y_variable1 = labels_reverse_dict[y_variable_label1]
@@ -359,7 +406,7 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
         side="right",
         tickmode="sync",
     ))
-    fig.update_xaxes(title_text="Cycle Days")
+    fig.update_xaxes(title_text=x_axis_text)
     fig.update_yaxes(title_text=labels_dict[y_variable1], secondary_y=False)
     fig.update_yaxes(title_text=labels_dict[y_variable2], secondary_y=True)
 
