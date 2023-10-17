@@ -135,8 +135,7 @@ labels_dict_en = {
     'kg/ha/day': 'KG/Ha/Day',
     'feed_percent_biomass': "Feed - % of biomass",
     'mlResultWeightCv':"CV",
-    'active_profit_cola_ha_day':"Profit/Ha/Day - Cola",
-    'active_profit_entero_ha_day':"Profit/Ha/Day - Entero"
+    'active_profit_cola_ha_day':"Profit/Ha/Day - Cola"
 
 }
 
@@ -152,7 +151,6 @@ labels_dict_esp = {
     'feed_percent_biomass': "Alimentacion - % de biomasa",
     'mlResultWeightCv':"CV",
     'active_profit_cola_ha_day':"Profit/Ha/Day - Cola",
-    'active_profit_entero_ha_day':"Profit/Ha/Day - Entero"
 }
 if st.session_state.language == 'ESP':
     labels_dict = labels_dict_esp
