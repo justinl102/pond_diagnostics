@@ -142,7 +142,7 @@ labels_dict_esp = {
     'weekly_fcr':'FCA Semanal',
     '1week_growth_rate':'Crecimiento-1 Semanas',
     '2week_growth_rate':'Crecimiento-2 Semanas',
-    'kg/ha/day': 'KG/Ha/Dias',
+    'kg/ha/day': 'KG/Ha/Dia',
     'feed_percent_biomass': "Alimentacion - % de biomasa",
     'mlResultWeightCv':"CV"
 }
