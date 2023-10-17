@@ -172,15 +172,15 @@ start_time, end_time = st.sidebar.slider(
         value=[min_date,max_date],
         format="MM/DD/YY")
 fixed_cost_day = st.sidebar.number_input('Costo Fijo/Ha/Day')
+pl_cost = st.sidebar.number_input('Costo/1000 PLs')
 show_trendlines_only = st.sidebar.toggle('Mostrar solo línea de tendencia', value = False)
 remove_outliers = st.sidebar.toggle('Eliminar valores atipicos', value = False)
 
 
 
-
 cycles['cycle_fixed_cost'] = cycles['cycle_days'] * fixed_cost_day * cycles['Hectareas']
-
-cycles['cycle_total_profit_usd'] = cycles['VentaUSDReal'] - cycles['cycle_fixed_cost'] - cycles['cycle_feed_cost']
+cycles['PL_cost'] = (cycles['CantidadSembrada'] / 1000) * pl_cost
+cycles['cycle_total_profit_usd'] = cycles['VentaUSDReal'] - cycles['cycle_fixed_cost'] - cycles['cycle_feed_cost'] - cycles['PL_cost']
 
 cycles['cycle_profit_ha_day'] = cycles['cycle_total_profit_usd'] / cycles['Hectareas']/ cycles['cycle_days']
 
