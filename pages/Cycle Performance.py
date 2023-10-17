@@ -99,7 +99,7 @@ objective_var_esp = [
     'Crecimiento semanal promedio',
     'FCA',
     'Precio Promedio/Kg',
-    'Average Weight',
+    'Peso Promedio',
     'Supervivencia',
     'Beneficio/Ha/Dia',
     'Beneficio total',
