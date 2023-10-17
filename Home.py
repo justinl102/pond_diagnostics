@@ -9,7 +9,7 @@ st.set_page_config(
     page_icon="👋",
 )
 
-st.write("Active Cycles:")
+st.write("Ciclos activos:")
 
 option = st.sidebar.selectbox(
     'Language',

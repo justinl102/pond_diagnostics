@@ -324,11 +324,7 @@ if second_graph:
         list(labels_reverse_dict.keys()),
         placeholder=metric4_placeholder,
         )
-option = st.sidebar.selectbox(
-    'Language',
-    ("ENG", "ESP"),
-    key = "language"
-)
+
 
 def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_cycles, harvests, start_time, end_time, active_cycles, colors = ["#83c9ff","#0068c9"], show_title = False):
     y_variable1 = labels_reverse_dict[y_variable_label1]
