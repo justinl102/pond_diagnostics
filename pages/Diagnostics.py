@@ -270,9 +270,9 @@ else:
     metric4_placeholder = "Variable #4"
     pond_placeholder = "Piscina"
     benchmark_placeholder = "Fechas de referencia"
-    show_benchmarks_label = "Mostrar puntos de referencia"
-    show_second_graph_label = "Mostrar segundo gráfico"
-    show_raleos_label = "Mostrar Raleos"
+    show_benchmarks_label = "Puntos de referencia"
+    show_second_graph_label = "Segundo gráfico"
+    show_raleos_label = "Raleos"
     x_axis_text = 'Días del ciclo'
 
 
@@ -391,9 +391,10 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
                     ),
             secondary_y=True,
         )
-    if show_raleos_status & len(cycle_raleos)>0:
-        for i in cycle_raleos['cycle_days']:
-            fig.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)    
+    if show_cycles:
+        if show_raleos_status & len(cycle_raleos)>0:
+            for i in cycle_raleos['cycle_days']:
+                fig.add_vline(x =i, line_width = 2, line_dash = "dash", line_color = 'red', annotation_text= 'Raleo',)    
 
         
     
