@@ -24,7 +24,7 @@ if 'language' not in st.session_state:
 def get_dataframe(file_name):
     return pd.read_csv(file_name)
 
-monitorings = get_dataframe('monitoring_cleaned.csv')
+monitorings = get_dataframe('monitoring_cleaned_pl.csv')
 harvests = get_dataframe('bravito_harvests.csv')
 active_cycles = get_dataframe('active_cycles.csv')
 active_cycles = active_cycles[active_cycles['PesoPromedio2'] >= 2]
@@ -107,6 +107,8 @@ param_dict = {
     'kg/ha/day':{'lower_factor':0.1,'upper_factor': 3, 'min_value': 0, 'max_value': 250},
     'feed_percent_biomass':{'lower_factor':0.1,'upper_factor': 4, 'min_value': 0, 'max_value': 1},
     'mlResultWeightCv':{'lower_factor':0.1,'upper_factor': 3, 'min_value': 0, 'max_value': 1},
+    'active_profit_cola_ha_day':{'lower_factor':-0.5,'upper_factor': 3, 'min_value': -100, 'max_value': 1000},
+
 }
 model_dict = {
     'Supervivencia': {"model":exponential_decay,"p0":[99.17700584718783,-0.005269]},
@@ -119,6 +121,7 @@ model_dict = {
     'kg/ha/day':{"model": exponential_fit_3d,"p0":None},
     'feed_percent_biomass':{"model": exponential_fit_3d,"p0":None},
     'mlResultWeightCv':{"model": exponential_fit_3d,"p0":None},
+    'active_profit_cola_ha_day':{"model": exponential_fit_3d,"p0":None},
 }
 
 labels_dict_en = {
@@ -131,7 +134,10 @@ labels_dict_en = {
     '2week_growth_rate':'Growth Rate - 2 Week',
     'kg/ha/day': 'KG/Ha/Day',
     'feed_percent_biomass': "Feed - % of biomass",
-    'mlResultWeightCv':"CV"
+    'mlResultWeightCv':"CV",
+    'active_profit_cola_ha_day':"Profit/Ha/Day - Cola",
+    'active_profit_entero_ha_day':"Profit/Ha/Day - Entero"
+
 }
 
 labels_dict_esp = {
@@ -144,7 +150,9 @@ labels_dict_esp = {
     '2week_growth_rate':'Crecimiento-2 Semanas',
     'kg/ha/day': 'KG/Ha/Dia',
     'feed_percent_biomass': "Alimentacion - % de biomasa",
-    'mlResultWeightCv':"CV"
+    'mlResultWeightCv':"CV",
+    'active_profit_cola_ha_day':"Profit/Ha/Day - Cola",
+    'active_profit_entero_ha_day':"Profit/Ha/Day - Entero"
 }
 if st.session_state.language == 'ESP':
     labels_dict = labels_dict_esp
