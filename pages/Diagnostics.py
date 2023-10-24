@@ -31,7 +31,6 @@ active_cycles = active_cycles[active_cycles['PesoPromedio2'] >= 2]
 
 monitorings['FechaMuestreo'] = pd.to_datetime(monitorings['FechaMuestreo']).dt.date
 
-monitorings['feed_percent_biomass'] =   (monitorings['KilosAlimento']/7) / monitorings['live_biomass']
 
 max_date = monitorings['FechaMuestreo'].max()
 min_date = monitorings['FechaMuestreo'].min()
@@ -81,10 +80,6 @@ def print_shape(df):
 
 def growth_model(time, Linf, K, position, w0):
     return Linf * np.exp(-np.exp(position - K * time)) + w0
-
-
-
-
 
 def exponential_fit_3d(x, a,b,c,d):
   return a*x**3 + b*x**2 + c*x + d
@@ -315,21 +310,8 @@ start_time, end_time = st.sidebar.slider(
 
 show_benchmarks = st.sidebar.toggle(show_benchmarks_label, value = True)
 
-second_graph = st.sidebar.toggle(show_second_graph_label)
 show_raleos = st.sidebar.toggle(show_raleos_label, value = False)
 
-if second_graph:
-    sidebar_var3 = st.sidebar.selectbox(
-        metric3_placeholder,
-        list(labels_reverse_dict.keys()),
-        placeholder=metric3_placeholder,
-        )
-
-    sidebar_var4 = st.sidebar.selectbox(
-        metric4_placeholder,
-        list(labels_reverse_dict.keys()),
-        placeholder=metric4_placeholder,
-        )
 
 
 def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_cycles, harvests, start_time, end_time, active_cycles,show_raleos_status, colors = ["#83c9ff","#0068c9"], show_title = False, ):
@@ -419,10 +401,20 @@ def generate_graph(y_variable_label1, y_variable_label2, show_benchmarks, show_c
     return fig
 try_chart = generate_graph(sidebar_var1, sidebar_var2, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,show_raleos,show_title = True)
 st.plotly_chart(try_chart, use_container_width=True)
-if second_graph:
-    try_chart2 = generate_graph(sidebar_var3, sidebar_var4, show_benchmarks, sidebar_cycle, harvests, start_time, end_time, active_cycles,show_raleos, colors=["#FFB983","#C900BB"], show_title = False)
-    st.plotly_chart(try_chart2, use_container_width=True)
 
+if sidebar_cycle:
+    cycle_id = int(pond_cycle_dict[sidebar_cycle])
+    distribution = eval(active_cycles.loc[active_cycles['PKCiclo'] == cycle_id, 'weightDistribution'].iloc[0])
+
+    plot_df = pd.DataFrame({
+        'weight_distribution':distribution
+    })
+    bin_width = 1
+    data_range = np.ceil(np.max(distribution)) - np.floor(np.min(distribution))
+    num_bins = int(data_range / bin_width)
+    fig3 =  px.histogram(plot_df,x = 'weight_distribution', nbins = num_bins)
+    fig3.update_layout(bargap=0.1)
+    st.plotly_chart(fig3, use_container_width=True)
 
 
 
