@@ -405,16 +405,19 @@ st.plotly_chart(try_chart, use_container_width=True)
 if sidebar_cycle:
     cycle_id = int(pond_cycle_dict[sidebar_cycle])
     distribution = eval(active_cycles.loc[active_cycles['PKCiclo'] == cycle_id, 'weightDistribution'].iloc[0])
-
-    plot_df = pd.DataFrame({
-        'weight_distribution':distribution
-    })
-    bin_width = 1
-    data_range = np.ceil(np.max(distribution)) - np.floor(np.min(distribution))
-    num_bins = int(data_range / bin_width)
-    fig3 =  px.histogram(plot_df,x = 'weight_distribution', nbins = num_bins)
-    fig3.update_layout(bargap=0.1)
-    st.plotly_chart(fig3, use_container_width=True)
+    if len(distribution) > 0:
+        plot_df = pd.DataFrame({
+            'weight_distribution':distribution
+        })
+        bin_width = 1
+        data_range = np.ceil(np.max(distribution)) - np.floor(np.min(distribution))
+        num_bins = int(data_range / bin_width)
+        fig3 =  px.histogram(plot_df,x = 'weight_distribution', nbins = num_bins)
+    
+        fig3.update_layout(bargap=0.1)
+        st.plotly_chart(fig3, use_container_width=True)
+    else:
+        'Histograma no disponible'
 
 
 
